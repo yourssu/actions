@@ -1,0 +1,130 @@
+name: "Yourssu Naming Convention Validator"
+description: "Validate naming conventions for issues, PRs, branches, and commits"
+author: "Yourssu Backend Team"
+
+inputs:
+  validation_string:
+    description: "The string to validate"
+    required: true
+  pattern_name:
+    description: "The pattern name (issue_title, pr_title, branch_name, commit_message)"
+    required: true
+  config_file:
+    description: "Path to configuration file"
+    required: false
+    default: ".github/naming-convention.yml"
+  team_config:
+    description: "Predefined team configuration (yourssu-backend, etc.)"
+    required: false
+    default: ""
+
+outputs:
+  is_valid:
+    description: "Whether validation passed"
+    value: ${{ steps.validate.outputs.is_valid }}
+  result_message:
+    description: "Validation result message"
+    value: ${{ steps.validate.outputs.result_message }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
+    - name: Install dependencies
+      shell: bash
+      run: npm install js-yaml
+
+    - name: Load team configuration
+      id: load-config
+      shell: bash
+      run: |
+        if [ "${{ inputs.team_config }}" != "" ]; then
+          # Use predefined team config
+          config_url="https://raw.githubusercontent.com/yourssu/github-actions/main/validate-naming-convention/configs/${{ inputs.team_config }}.yml"
+          curl -s "$config_url" > /tmp/naming-convention.yml
+          echo "config_file=/tmp/naming-convention.yml" >> $GITHUB_OUTPUT
+        else
+          # Use repository's own config
+          echo "config_file=${{ inputs.config_file }}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Validate naming convention
+      id: validate
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const yaml = require('js-yaml');
+          const fs = require('fs');
+
+          const validationString = '${{ inputs.validation_string }}';
+          const patternName = '${{ inputs.pattern_name }}';
+          const configFile = '${{ steps.load-config.outputs.config_file }}';
+
+          console.log(`🔍 Validating: "${validationString}" against pattern: "${patternName}"`);
+          console.log(`📋 Using config file: ${configFile}`);
+
+          // Load configuration file
+          let config;
+          try {
+            const fileContent = fs.readFileSync(configFile, 'utf8');
+            config = yaml.load(fileContent);
+            console.log('✅ Configuration file loaded successfully');
+          } catch (error) {
+            console.error('❌ Error loading configuration:', error.message);
+            core.setOutput('is_valid', 'false');
+            core.setOutput('result_message', '❌ 설정 파일을 읽을 수 없습니다.');
+            return;
+          }
+
+          // Rest of validation logic (same as before)
+          if (!config.patterns || !config.patterns[patternName]) {
+            console.error(`❌ Pattern "${patternName}" not found in configuration`);
+            core.setOutput('is_valid', 'false');
+            core.setOutput('result_message', `❌ 패턴 "${patternName}"이 설정 파일에 정의되지 않았습니다.`);
+            return;
+          }
+
+          const allowedTags = config.tags?.allowed || [];
+          const patternString = config.patterns[patternName].replace('{tags}', allowedTags.join('|'));
+
+          let pattern;
+          try {
+            pattern = new RegExp(patternString);
+            console.log(`📋 Using regex pattern: ${patternString}`);
+          } catch (error) {
+            console.error('❌ Invalid regex pattern:', error.message);
+            core.setOutput('is_valid', 'false');
+            core.setOutput('result_message', '❌ 정규식 패턴이 잘못되었습니다.');
+            return;
+          }
+
+          const isValid = pattern.test(validationString);
+
+          if (isValid) {
+            console.log(`✅ Validation passed for: "${validationString}"`);
+            core.setOutput('is_valid', 'true');
+            core.setOutput('result_message', '✅ **네이밍 컨벤션 검증 통과**');
+          } else {
+            console.log(`❌ Validation failed for: "${validationString}"`);
+            
+            const messageKey = patternName.replace('_name', '').replace('_title', '').replace('_message', '') + '_error';
+            let errorMessage = config.messages?.[messageKey] || '❌ 네이밍 컨벤션을 따르지 않습니다.';
+            
+            errorMessage += `\n\n**현재 값:** \`${validationString}\``;
+            errorMessage += `\n**예상 형식:** \`${patternString}\``;
+            
+            const exampleKey = patternName.replace('_name', '').replace('_title', '').replace('_message', '') + '_examples';
+            if (config.examples && config.examples[exampleKey]) {
+              errorMessage += `\n\n**올바른 예시:**`;
+              config.examples[exampleKey].forEach(example => {
+                errorMessage += `\n- \`${example}\``;
+              });
+            }
+            
+            core.setOutput('is_valid', 'false');
+            core.setOutput('result_message', errorMessage);
+          }
