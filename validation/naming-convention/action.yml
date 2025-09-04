@@ -140,24 +140,55 @@ runs:
           core.setOutput('results', JSON.stringify(results));
           core.setOutput('all_valid', allValid.toString());
 
-          // Create comment if there are any validation failures
-          const failedItems = Object.entries(results)
-            .filter(([key, result]) => result.validated && !result.valid);
-
-          if (failedItems.length > 0) {
+          // Create comment for PR validation results (always for PRs, only failures for issues)
+          const isPR = context.eventName === 'pull_request';
+          const hasValidatedItems = validatedItems.length > 0;
+          
+          if (hasValidatedItems && (isPR || !allValid)) {
             let comment = '## 🔍 네이밍 컨벤션 검증 결과\n\n';
             
-            failedItems.forEach(([type, result]) => {
-              const titles = {
-                issue: '### 이슈 제목',
-                pr: '### PR 제목', 
-                branch: '### 브랜치 이름',
-                commits: '### 커밋 메시지'
-              };
+            if (allValid) {
+              comment += '✅ **모든 네이밍 컨벤션 검증이 통과되었습니다!**\n\n';
               
-              comment += titles[type] + '\n';
-              comment += result.message + '\n\n';
-            });
+              // Show what was validated
+              const validatedTypes = Object.entries(results)
+                .filter(([key, result]) => result.validated)
+                .map(([type]) => {
+                  const names = {
+                    issue: '이슈 제목',
+                    pr: 'PR 제목',
+                    branch: '브랜치 이름', 
+                    commits: '커밋 메시지'
+                  };
+                  return names[type];
+                });
+              
+              if (validatedTypes.length > 0) {
+                comment += `**검증 완료:** ${validatedTypes.join(', ')}\n`;
+              }
+            } else {
+              comment += '❌ **일부 네이밍 컨벤션 검증이 실패했습니다.**\n\n';
+              
+              Object.entries(results).forEach(([type, result]) => {
+                if (result.validated) {
+                  const titles = {
+                    issue: '### 이슈 제목',
+                    pr: '### PR 제목',
+                    branch: '### 브랜치 이름', 
+                    commits: '### 커밋 메시지'
+                  };
+                  
+                  const status = result.valid ? '✅' : '❌';
+                  comment += `${titles[type]} ${status}\n`;
+                  
+                  if (!result.valid) {
+                    comment += result.message + '\n\n';
+                  } else {
+                    comment += '검증 통과\n\n';
+                  }
+                }
+              });
+            }
 
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
