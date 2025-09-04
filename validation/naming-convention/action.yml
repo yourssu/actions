@@ -61,37 +61,37 @@ runs:
 
     - name: Validate Issue Title
       if: github.event_name == 'issues' && inputs.validate_issues == 'true'
-      uses: ./validation/validator
+      uses: yourssu/actions/validation/validator@main
       with:
         validation_string: ${{ github.event.issue.title }}
-        pattern_name: 'issue_title'
+        pattern_name: "issue_title"
         team_config: ${{ inputs.team_config }}
         config_file: ${{ inputs.config_file }}
       id: validate-issue
 
     - name: Validate PR Title
       if: github.event_name == 'pull_request' && inputs.validate_prs == 'true'
-      uses: ./validation/validator
+      uses: yourssu/actions/validation/validator@main
       with:
         validation_string: ${{ github.event.pull_request.title }}
-        pattern_name: 'pr_title'
+        pattern_name: "pr_title"
         team_config: ${{ inputs.team_config }}
         config_file: ${{ inputs.config_file }}
       id: validate-pr
 
     - name: Validate Branch Name
       if: github.event_name == 'pull_request' && inputs.validate_branches == 'true' && (inputs.validate_drafts == 'true' || !github.event.pull_request.draft)
-      uses: ./validation/validator
+      uses: yourssu/actions/validation/validator@main
       with:
         validation_string: ${{ github.event.pull_request.head.ref }}
-        pattern_name: 'branch_name'
+        pattern_name: "branch_name"
         team_config: ${{ inputs.team_config }}
         config_file: ${{ inputs.config_file }}
       id: validate-branch
 
     - name: Validate commit messages
       if: github.event_name == 'pull_request' && inputs.validate_commits == 'true' && (inputs.validate_drafts == 'true' || !github.event.pull_request.draft)
-      uses: ./validation/commit-validator
+      uses: yourssu/actions/validation/commit-validator@main
       with:
         github_token: ${{ inputs.github_token }}
         pr_number: ${{ github.event.pull_request.number }}
@@ -131,7 +131,7 @@ runs:
           // Check if all validated items are valid
           const validatedItems = Object.values(results).filter(r => r.validated);
           const allValid = validatedItems.length > 0 && validatedItems.every(r => r.valid);
-          
+
           core.setOutput('results', JSON.stringify(results));
           core.setOutput('all_valid', allValid.toString());
 
@@ -169,7 +169,7 @@ runs:
               console.log(`${status} ${type}: ${result.valid ? 'PASS' : 'FAIL'}`);
             }
           });
-          
+
           console.log(`\n🎯 Overall Result: ${allValid ? 'ALL PASSED' : 'SOME FAILED'}`);
 
     - name: Set status checks
@@ -180,7 +180,7 @@ runs:
         script: |
           const results = JSON.parse('${{ steps.summarize.outputs.results }}');
           const allValid = '${{ steps.summarize.outputs.all_valid }}' === 'true';
-          
+
           // Set overall status check
           await github.rest.repos.createCommitStatus({
             owner: context.repo.owner,

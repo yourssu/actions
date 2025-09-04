@@ -1,0 +1,90 @@
+# Example Custom Naming Convention Configuration
+# Copy this file to .github/naming-convention.yml in your project
+# Customize the patterns and messages according to your team's needs
+
+tags:
+  allowed:
+    - feat
+    - fix
+    - refactor
+    - docs
+    - chore
+    - hotfix # Additional tag for urgent fixes
+    - test # Additional tag for test-related changes
+
+patterns:
+  # Issue title: <tag>: <description>
+  issue_title: "^({tags}): .+"
+
+  # PR title: [#issue-number]; <tag>: <description>
+  pr_title: '^\[#\d+\]; ({tags}): .+'
+
+  # Branch name: <tag>/<issue-number>
+  branch_name: '^({tags})\/\d+$'
+
+  # Commit message: [#issue-number]; <tag>: <description>
+  commit_message: '^\[#\d+\]; ({tags}): .+'
+
+messages:
+  issue_error: |
+    ❌ **이슈 제목이 프로젝트의 네이밍 컨벤션을 따르지 않습니다.**
+
+    이슈 제목은 다음 형식을 따라야 합니다: `<태그>: <설명>`
+
+    **사용 가능한 태그:** feat, fix, refactor, docs, chore, hotfix, test
+
+    **태그 설명:**
+    - `feat`: 새로운 기능 추가
+    - `fix`: 일반적인 버그 수정
+    - `hotfix`: 긴급한 버그 수정
+    - `refactor`: 코드 리팩토링
+    - `docs`: 문서 관련
+    - `chore`: 빌드, 설정 관련
+    - `test`: 테스트 관련
+
+  pr_error: |
+    ❌ **PR 제목이 프로젝트의 네이밍 컨벤션을 따르지 않습니다.**
+
+    PR 제목은 다음 형식을 따라야 합니다: `[#이슈번호]; <태그>: <설명>`
+
+    **사용 가능한 태그:** feat, fix, refactor, docs, chore, hotfix, test
+
+  branch_error: |
+    ❌ **브랜치 이름이 프로젝트의 네이밍 컨벤션을 따르지 않습니다.**
+
+    브랜치 이름은 다음 형식을 따라야 합니다: `<태그>/<이슈번호>`
+
+    **사용 가능한 태그:** feat, fix, refactor, docs, chore, hotfix, test
+
+  commit_error: |
+    ❌ **커밋 메시지가 프로젝트의 네이밍 컨벤션을 따르지 않습니다.**
+
+    커밋 메시지는 다음 형식을 따라야 합니다: `[#이슈번호]; <태그>: <설명>`
+
+    **사용 가능한 태그:** feat, fix, refactor, docs, chore, hotfix, test
+
+examples:
+  issue_examples:
+    - "feat: 사용자 로그인 기능 추가"
+    - "fix: 로그인 버튼 클릭 안되는 문제 수정"
+    - "hotfix: 결제 시스템 오류 긴급 수정"
+    - "refactor: 데이터베이스 연결 로직 개선"
+    - "docs: API 문서 업데이트"
+    - "chore: 의존성 패키지 업데이트"
+    - "test: 로그인 기능 단위 테스트 추가"
+
+  pr_examples:
+    - "[#123]; feat: 사용자 로그인 기능 추가"
+    - "[#456]; hotfix: 결제 시스템 오류 긴급 수정"
+    - "[#789]; test: API 통합 테스트 구현"
+
+  branch_examples:
+    - "feat/123"
+    - "hotfix/456"
+    - "test/789"
+
+  commit_examples:
+    - "[#123]; feat: 사용자 인증 API 추가"
+    - "[#123]; feat: 로그인 폼 UI 구현"
+    - "[#456]; hotfix: 크리티컬 보안 이슈 수정"
+    - "[#789]; test: 사용자 가입 플로우 E2E 테스트 추가"
