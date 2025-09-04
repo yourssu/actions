@@ -180,10 +180,12 @@ runs:
     - name: Set status checks
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v7
+      env:
+        RESULTS_JSON: ${{ steps.summarize.outputs.results }}
       with:
         github-token: ${{ inputs.github_token }}
         script: |
-          const results = JSON.parse('${{ steps.summarize.outputs.results }}');
+          const results = JSON.parse(process.env.RESULTS_JSON);
           const allValid = '${{ steps.summarize.outputs.all_valid }}' === 'true';
 
           // Set overall status check
