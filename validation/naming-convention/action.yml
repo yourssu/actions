@@ -61,7 +61,7 @@ runs:
 
     - name: Validate Issue Title
       if: github.event_name == 'issues' && inputs.validate_issues == 'true'
-      uses: yourssu/actions/validation/validator@main
+      uses: yourssu/actions/validation/modules/validator@main
       with:
         validation_string: ${{ github.event.issue.title }}
         pattern_name: "issue_title"
@@ -71,7 +71,7 @@ runs:
 
     - name: Validate PR Title
       if: github.event_name == 'pull_request' && inputs.validate_prs == 'true'
-      uses: yourssu/actions/validation/validator@main
+      uses: yourssu/actions/validation/modules/validator@main
       with:
         validation_string: ${{ github.event.pull_request.title }}
         pattern_name: "pr_title"
@@ -81,7 +81,7 @@ runs:
 
     - name: Validate Branch Name
       if: github.event_name == 'pull_request' && inputs.validate_branches == 'true' && (inputs.validate_drafts == 'true' || !github.event.pull_request.draft)
-      uses: yourssu/actions/validation/validator@main
+      uses: yourssu/actions/validation/modules/validator@main
       with:
         validation_string: ${{ github.event.pull_request.head.ref }}
         pattern_name: "branch_name"
@@ -91,7 +91,7 @@ runs:
 
     - name: Validate commit messages
       if: github.event_name == 'pull_request' && inputs.validate_commits == 'true' && (inputs.validate_drafts == 'true' || !github.event.pull_request.draft)
-      uses: yourssu/actions/validation/commit-validator@main
+      uses: yourssu/actions/validation/modules/commit-validator@main
       with:
         github_token: ${{ inputs.github_token }}
         pr_number: ${{ github.event.pull_request.number }}

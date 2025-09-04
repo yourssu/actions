@@ -1,0 +1,35 @@
+# 고급 네이밍 컨벤션 검증
+# 모든 옵션을 사용한 고급 사용법 예시
+
+name: 고급 네이밍 컨벤션 검증
+
+on:
+  issues:
+    types: [opened, edited]
+  pull_request:
+    types: [opened, edited, ready_for_review, synchronize]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: 네이밍 컨벤션 검증
+        uses: yourssu/actions/validation/naming-convention@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          team_config: "yourssu-backend"
+          validate_drafts: false    # Draft PR 검증 안 함
+          strict_mode: true         # 검증 오류 시 액션 실패
+          validate_issues: true     # 이슈 제목 검증
+          validate_prs: true        # PR 제목 검증
+          validate_branches: true   # 브랜치명 검증
+          validate_commits: true    # 커밋 메시지 검증
+        id: validation
+        
+      - name: 검증 결과 처리
+        if: always()
+        run: |
+          echo "모든 검증 통과: ${{ steps.validation.outputs.all_valid }}"
+          echo "결과: ${{ steps.validation.outputs.validation_results }}"

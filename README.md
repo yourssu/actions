@@ -8,12 +8,10 @@ Yourssu에서 사용하는 재사용 가능한 GitHub Actions 모음입니다.
 .
 ├── validation/                 # 네이밍 컨벤션 검증 액션들
 │   ├── naming-convention/      # 완전한 네이밍 컨벤션 검증 (권장)
-│   ├── commit-validator/       # PR 커밋 메시지 검증
-│   └── validator/              # 내부용 단일 패턴 검증기
-├── examples/                   # 사용 예시 및 템플릿
-│   ├── workflows/              # 워크플로우 템플릿
-│   └── configs/                # 설정 파일 예시
-└── README.md                   # 이 파일
+│   └── modules/                # 내부용 모듈들
+│       ├── commit-validator/   # 커밋 메시지 검증 모듈 (내부용)
+│       └── validator/          # 단일 패턴 검증기 (내부용)
+└── README.md
 ```
 
 ## 🚀 빠른 시작
@@ -50,13 +48,7 @@ jobs:
 
 네이밍 컨벤션 검증을 위한 액션들을 제공합니다.
 
-- **[naming-convention/](./validation/naming-convention/)** - 완전한 네이밍 컨벤션 검증 (대부분의 경우 권장)
-- **[commit-validator/](./validation/commit-validator/)** - PR 커밋 메시지 전용 검증
-- **[validator/](./validation/validator/)** - 내부용 단일 패턴 검증기
-
-### [📋 examples/](./examples/)
-
-워크플로우 템플릿과 설정 파일 예시를 제공합니다.
+- **[naming-convention/](./validation/naming-convention/)** - 완전한 네이밍 컨벤션 검증 (권장)
 
 ## ⚙️ 팀 설정
 

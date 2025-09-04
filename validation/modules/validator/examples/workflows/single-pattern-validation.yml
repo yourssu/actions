@@ -1,0 +1,44 @@
+# 단일 패턴 검증 예시
+# 특정 패턴만 검증하고 싶을 때 사용
+
+name: 단일 패턴 검증
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  validate-issue-title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: 이슈 제목만 검증
+        uses: yourssu/actions/validation/validator@v1
+        with:
+          validation_string: ${{ github.event.issue.title }}
+          pattern_name: "issue_title"
+          team_config: "yourssu-backend"
+        id: validation
+        
+      - name: 검증 성공 시
+        if: steps.validation.outputs.is_valid == 'true'
+        run: echo "✅ 이슈 제목이 네이밍 컨벤션을 따릅니다!"
+        
+      - name: 검증 실패 시 댓글 추가
+        if: steps.validation.outputs.is_valid == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '${{ steps.validation.outputs.result_message }}'
+            });
+            
+      - name: 검증 실패 시 액션 실패
+        if: steps.validation.outputs.is_valid == 'false'
+        run: |
+          echo "❌ 이슈 제목 검증 실패"
+          exit 1

@@ -1,0 +1,57 @@
+# 커밋 분석이 포함된 검증
+# 실패한 커밋들을 자세히 분석합니다
+
+name: 상세 커밋 분석
+
+on:
+  pull_request:
+    types: [ready_for_review, synchronize]
+
+jobs:
+  analyze-commits:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: 커밋 메시지 검증
+        uses: yourssu/actions/validation/commit-validator@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          team_config: "yourssu-backend"
+        id: validation
+        
+      - name: 검증 결과 출력
+        run: |
+          echo "검증 결과: ${{ steps.validation.outputs.is_valid }}"
+          echo "총 커밋 수: ${{ steps.validation.outputs.total_commits }}"
+          
+      - name: 실패한 커밋 분석
+        if: steps.validation.outputs.is_valid == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const invalidCommits = JSON.parse('${{ steps.validation.outputs.invalid_commits }}');
+            
+            console.log(`🔍 ${invalidCommits.length}개의 유효하지 않은 커밋을 발견했습니다:`);
+            console.log('');
+            
+            for (const commit of invalidCommits) {
+              console.log(`❌ 커밋: ${commit.sha}`);
+              console.log(`   메시지: "${commit.message}"`);
+              console.log(`   작성자: ${commit.author}`);
+              console.log(`   날짜: ${commit.date}`);
+              console.log('');
+            }
+            
+            // 총 분석 결과
+            const totalCommits = parseInt('${{ steps.validation.outputs.total_commits }}');
+            const validCommits = totalCommits - invalidCommits.length;
+            console.log(`📊 총 ${totalCommits}개 커밋 중 ${validCommits}개 통과, ${invalidCommits.length}개 실패`);
+        
+      - name: 성공한 경우
+        if: steps.validation.outputs.is_valid == 'true'
+        run: |
+          echo "✅ 모든 커밋이 네이밍 컨벤션을 따릅니다!"
+          echo "총 ${{ steps.validation.outputs.total_commits }}개 커밋 검증 완료"

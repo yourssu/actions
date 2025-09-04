@@ -1,0 +1,61 @@
+# 커스텀 검증 워크플로우
+# validator 액션을 사용한 세밀한 검증 제어
+
+name: 커스텀 네이밍 검증
+
+on:
+  issues:
+    types: [opened, edited]
+  pull_request:
+    types: [opened, edited]
+
+jobs:
+  custom-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: 이슈 제목 검증
+        if: github.event_name == 'issues'
+        uses: yourssu/actions/validation/validator@v1
+        with:
+          validation_string: ${{ github.event.issue.title }}
+          pattern_name: "issue_title"
+          team_config: "yourssu-backend"
+        id: validate-issue
+        
+      - name: PR 제목 검증
+        if: github.event_name == 'pull_request'
+        uses: yourssu/actions/validation/validator@v1
+        with:
+          validation_string: ${{ github.event.pull_request.title }}
+          pattern_name: "pr_title"
+          team_config: "yourssu-backend"
+        id: validate-pr
+        
+      - name: 브랜치명 검증
+        if: github.event_name == 'pull_request'
+        uses: yourssu/actions/validation/validator@v1
+        with:
+          validation_string: ${{ github.event.pull_request.head.ref }}
+          pattern_name: "branch_name"
+          team_config: "yourssu-backend"
+        id: validate-branch
+        
+      - name: 검증 결과 처리
+        if: always()
+        run: |
+          if [ "${{ steps.validate-issue.outputs.is_valid }}" = "false" ]; then
+            echo "❌ 이슈 제목 검증 실패"
+            echo "${{ steps.validate-issue.outputs.result_message }}"
+          fi
+          
+          if [ "${{ steps.validate-pr.outputs.is_valid }}" = "false" ]; then
+            echo "❌ PR 제목 검증 실패"
+            echo "${{ steps.validate-pr.outputs.result_message }}"
+          fi
+          
+          if [ "${{ steps.validate-branch.outputs.is_valid }}" = "false" ]; then
+            echo "❌ 브랜치명 검증 실패"
+            echo "${{ steps.validate-branch.outputs.result_message }}"
+          fi

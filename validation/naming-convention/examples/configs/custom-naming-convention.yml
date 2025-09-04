@@ -1,6 +1,6 @@
-# Example Custom Naming Convention Configuration
-# Copy this file to .github/naming-convention.yml in your project
-# Customize the patterns and messages according to your team's needs
+# 사용자 정의 네이밍 컨벤션 설정 예시
+# 이 파일을 프로젝트의 .github/naming-convention.yml에 복사하고
+# 팀의 필요에 따라 패턴과 메시지를 수정하세요
 
 tags:
   allowed:
@@ -9,20 +9,20 @@ tags:
     - refactor
     - docs
     - chore
-    - hotfix # Additional tag for urgent fixes
-    - test # Additional tag for test-related changes
+    - hotfix # 긴급 수정용 추가 태그
+    - test # 테스트 관련 추가 태그
 
 patterns:
-  # Issue title: <tag>: <description>
+  # 이슈 제목: <태그>: <설명>
   issue_title: "^({tags}): .+"
 
-  # PR title: [#issue-number]; <tag>: <description>
+  # PR 제목: [#이슈번호]; <태그>: <설명>
   pr_title: '^\[#\d+\]; ({tags}): .+'
 
-  # Branch name: <tag>/<issue-number>
+  # 브랜치명: <태그>/<이슈번호>
   branch_name: '^({tags})\/\d+$'
 
-  # Commit message: [#issue-number]; <tag>: <description>
+  # 커밋 메시지: [#이슈번호]; <태그>: <설명>
   commit_message: '^\[#\d+\]; ({tags}): .+'
 
 messages:

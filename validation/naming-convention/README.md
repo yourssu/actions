@@ -269,3 +269,22 @@ A: `strict_mode: false`로 시작해서 점진적으로 규칙을 적용하세�
 
 **Q: 특정 패턴만 검증하고 싶습니다**  
 A: `validate_*` 매개변수를 사용해서 원하는 검증만 활성화할 수 있습니다.
+
+## 예제
+
+다양한 사용 시나리오에 대한 예제들을 [`examples/`](./examples/) 디렉토리에서 확인할 수 있습니다:
+
+### 워크플로우 예제
+
+- **[기본 사용법](./examples/workflows/basic-usage.yml)** - 가장 간단한 설정
+- **[고급 사용법](./examples/workflows/advanced-usage.yml)** - 모든 옵션을 활용한 고급 설정
+- **[점진적 도입](./examples/workflows/gradual-implementation.yml)** - 기존 프로젝트에 점진적 적용
+- **[사용자 정의 설정](./examples/workflows/custom-config.yml)** - 커스텀 규칙 사용
+
+### 설정 파일 예제
+
+- **[사용자 정의 설정 파일](./examples/configs/custom-naming-convention.yml)** - 프로젝트별 커스텀 규칙
+
+## 라이선스
+
+MIT 라이선스

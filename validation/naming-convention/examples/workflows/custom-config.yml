@@ -1,8 +1,8 @@
-# Custom Configuration Naming Convention Validation
-# Copy this file to .github/workflows/ in your project
-# Make sure to also copy the .github/naming-convention.yml config file
+# 사용자 정의 설정 네이밍 컨벤션 검증
+# 이 파일을 프로젝트의 .github/workflows/에 복사하고
+# .github/naming-convention.yml 설정 파일도 함께 복사하세요
 
-name: Validate Naming Conventions (Custom Config)
+name: 네이밍 컨벤션 검증 (사용자 정의)
 
 on:
   issues:
@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Validate Naming Conventions
+      - name: 네이밍 컨벤션 검증
         uses: yourssu/actions/validation/naming-convention@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

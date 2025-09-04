@@ -1,0 +1,56 @@
+# 상태 체크가 포함된 커밋 메시지 검증
+# 검증 결과를 PR 상태 체크로 표시합니다
+
+name: 커밋 검증 (상태 체크 포함)
+
+on:
+  pull_request:
+    types: [ready_for_review, synchronize]
+
+jobs:
+  validate-commits:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: 커밋 메시지 검증
+        uses: yourssu/actions/validation/commit-validator@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          team_config: "yourssu-backend"
+        id: validation
+        
+      - name: 상태 체크 설정
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const isValid = '${{ steps.validation.outputs.is_valid }}' === 'true';
+            const totalCommits = '${{ steps.validation.outputs.total_commits }}';
+            
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: isValid ? 'success' : 'failure',
+              target_url: `${context.payload.repository.html_url}/actions/runs/${context.runId}`,
+              description: isValid ? `모든 ${totalCommits}개 커밋 유효` : '일부 커밋 검증 실패',
+              context: 'yourssu/commit-messages'
+            });
+        
+      - name: PR 댓글 생성
+        if: steps.validation.outputs.is_valid == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '${{ steps.validation.outputs.result_message }}'
+            });
+            
+      - name: 유효하지 않은 커밋 시 실패
+        if: steps.validation.outputs.is_valid == 'false'
+        run: exit 1

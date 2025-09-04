@@ -1,0 +1,22 @@
+# 기본 커밋 메시지 검증
+# PR의 커밋 메시지를 검증합니다
+
+name: 커밋 메시지 검증
+
+on:
+  pull_request:
+    types: [ready_for_review, synchronize]
+
+jobs:
+  validate-commits:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: 커밋 메시지 검증
+        uses: yourssu/actions/validation/commit-validator@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          team_config: "yourssu-backend"
