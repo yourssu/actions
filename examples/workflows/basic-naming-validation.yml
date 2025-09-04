@@ -1,0 +1,22 @@
+# Basic Naming Convention Validation
+# Copy this file to .github/workflows/ in your project
+
+name: Validate Naming Conventions
+
+on:
+  issues:
+    types: [opened, edited]
+  pull_request:
+    types: [opened, edited, ready_for_review, synchronize]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate Naming Conventions
+        uses: yourssu/actions/validation/naming-convention@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          team_config: "yourssu-backend"

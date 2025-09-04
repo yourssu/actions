@@ -1,0 +1,207 @@
+name: "Yourssu Commit Validator"
+description: "Validate commit messages in a pull request against naming conventions"
+author: "Yourssu Backend Team"
+
+inputs:
+  github_token:
+    description: "GitHub token for API access"
+    required: false
+    default: ${{ github.token }}
+  pr_number:
+    description: "Pull request number to validate commits for"
+    required: false
+    default: ${{ github.event.number }}
+  team_config:
+    description: "Predefined team configuration (yourssu-backend, etc.)"
+    required: false
+    default: "yourssu-backend"
+  config_file:
+    description: "Path to custom configuration file"
+    required: false
+    default: ".github/naming-convention.yml"
+
+outputs:
+  is_valid:
+    description: "Whether all commit messages are valid"
+    value: ${{ steps.validate.outputs.is_valid }}
+  result_message:
+    description: "Validation result message"
+    value: ${{ steps.validate.outputs.result_message }}
+  invalid_commits:
+    description: "JSON array of invalid commits"
+    value: ${{ steps.validate.outputs.invalid_commits }}
+  total_commits:
+    description: "Total number of commits checked"
+    value: ${{ steps.validate.outputs.total_commits }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
+    - name: Install dependencies
+      shell: bash
+      run: npm install js-yaml
+
+    - name: Validate commit messages
+      id: validate
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const yaml = require('js-yaml');
+          const fs = require('fs');
+          const https = require('https');
+
+          // Get PR number
+          const prNumber = '${{ inputs.pr_number }}' || context.issue.number;
+          
+          console.log(`🔍 Validating commit messages for PR #${prNumber}`);
+
+          // Get commits from the PR
+          let commits;
+          try {
+            const response = await github.rest.pulls.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            commits = response.data;
+          } catch (error) {
+            console.error('❌ Failed to fetch commits:', error);
+            core.setOutput('is_valid', 'false');
+            core.setOutput('result_message', '❌ PR 커밋 목록을 가져올 수 없습니다.');
+            core.setOutput('invalid_commits', '[]');
+            core.setOutput('total_commits', '0');
+            return;
+          }
+
+          // Load configuration
+          let config;
+          const configFile = '${{ inputs.config_file }}';
+          const teamConfig = '${{ inputs.team_config }}';
+          
+          if (teamConfig && teamConfig !== '') {
+            // Use team config - download it
+            const configUrl = `https://raw.githubusercontent.com/yourssu/actions/main/validation/validator/configs/${teamConfig}.yml`;
+            
+            console.log(`📋 Loading team config: ${teamConfig}`);
+            
+            try {
+              const response = await new Promise((resolve, reject) => {
+                https.get(configUrl, (res) => {
+                  let data = '';
+                  res.on('data', chunk => data += chunk);
+                  res.on('end', () => resolve(data));
+                }).on('error', reject);
+              });
+              
+              config = yaml.load(response);
+              console.log('✅ Team configuration loaded successfully');
+            } catch (error) {
+              console.error('❌ Failed to load team config:', error);
+              core.setOutput('is_valid', 'false');
+              core.setOutput('result_message', '❌ 팀 설정을 로드할 수 없습니다.');
+              core.setOutput('invalid_commits', '[]');
+              core.setOutput('total_commits', commits.length.toString());
+              return;
+            }
+          } else {
+            // Use local config file
+            console.log(`📋 Loading local config: ${configFile}`);
+            
+            try {
+              const fileContent = fs.readFileSync(configFile, 'utf8');
+              config = yaml.load(fileContent);
+              console.log('✅ Local configuration loaded successfully');
+            } catch (error) {
+              console.error('❌ Failed to load local config:', error);
+              core.setOutput('is_valid', 'false');
+              core.setOutput('result_message', '❌ 설정 파일을 로드할 수 없습니다.');
+              core.setOutput('invalid_commits', '[]');
+              core.setOutput('total_commits', commits.length.toString());
+              return;
+            }
+          }
+
+          // Validate commit messages
+          const allowedTags = config.tags?.allowed || [];
+          const patternString = config.patterns.commit_message.replace('{tags}', allowedTags.join('|'));
+          
+          let pattern;
+          try {
+            pattern = new RegExp(patternString);
+            console.log(`📋 Using regex pattern: ${patternString}`);
+          } catch (error) {
+            console.error('❌ Invalid regex pattern:', error);
+            core.setOutput('is_valid', 'false');
+            core.setOutput('result_message', '❌ 정규식 패턴이 잘못되었습니다.');
+            core.setOutput('invalid_commits', '[]');
+            core.setOutput('total_commits', commits.length.toString());
+            return;
+          }
+          
+          const invalidCommits = [];
+          let processedCount = 0;
+          
+          for (const commit of commits) {
+            const message = commit.commit.message.split('\n')[0]; // Get first line only
+            processedCount++;
+            
+            // Skip merge commits
+            if (message.startsWith('Merge ')) {
+              console.log(`⏭️  Skipping merge commit: ${commit.sha.substring(0, 7)}`);
+              continue;
+            }
+            
+            if (!pattern.test(message)) {
+              console.log(`❌ Invalid commit: ${commit.sha.substring(0, 7)} - "${message}"`);
+              invalidCommits.push({
+                sha: commit.sha.substring(0, 7),
+                full_sha: commit.sha,
+                message: message,
+                author: commit.commit.author.name,
+                date: commit.commit.author.date
+              });
+            } else {
+              console.log(`✅ Valid commit: ${commit.sha.substring(0, 7)} - "${message}"`);
+            }
+          }
+          
+          const isValid = invalidCommits.length === 0;
+          
+          // Set outputs
+          core.setOutput('is_valid', isValid.toString());
+          core.setOutput('invalid_commits', JSON.stringify(invalidCommits));
+          core.setOutput('total_commits', processedCount.toString());
+          
+          // Create result message
+          if (isValid) {
+            const message = `✅ **모든 커밋 메시지가 네이밍 컨벤션을 따릅니다.**\n\n검증된 커밋: ${processedCount}개`;
+            core.setOutput('result_message', message);
+            console.log(`🎉 All ${processedCount} commits are valid!`);
+          } else {
+            let errorMessage = `❌ **다음 ${invalidCommits.length}개의 커밋 메시지가 네이밍 컨벤션을 따르지 않습니다:**\n\n`;
+            
+            invalidCommits.forEach(commit => {
+              errorMessage += `- \`${commit.sha}\`: \`${commit.message}\`\n`;
+            });
+            
+            errorMessage += `\n**올바른 형식:** \`${patternString}\`\n`;
+            errorMessage += '**사용 가능한 태그:** ' + allowedTags.join(', ') + '\n\n';
+            errorMessage += '**올바른 예시:**\n';
+            
+            if (config.examples?.commit_examples) {
+              config.examples.commit_examples.forEach(example => {
+                errorMessage += `- \`${example}\`\n`;
+              });
+            }
+            
+            errorMessage += `\n📊 **검증 결과:** ${processedCount - invalidCommits.length}/${processedCount} 통과`;
+            
+            core.setOutput('result_message', errorMessage);
+            console.log(`❌ ${invalidCommits.length}/${processedCount} commits failed validation`);
+          }

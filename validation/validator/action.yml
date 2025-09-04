@@ -1,5 +1,5 @@
-name: "Yourssu Naming Convention Validator"
-description: "Validate naming conventions for issues, PRs, branches, and commits"
+name: "Yourssu Validator (Internal)"
+description: "Internal validator for naming conventions - validates single strings against patterns"
 author: "Yourssu Backend Team"
 
 inputs:
@@ -44,7 +44,7 @@ runs:
       run: |
         if [ "${{ inputs.team_config }}" != "" ]; then
           # Use predefined team config
-          config_url="https://raw.githubusercontent.com/yourssu/github-actions/main/validate-naming-convention/configs/${{ inputs.team_config }}.yml"
+          config_url="https://raw.githubusercontent.com/yourssu/actions/main/validation/validator/configs/${{ inputs.team_config }}.yml"
           curl -s "$config_url" > /tmp/naming-convention.yml
           echo "config_file=/tmp/naming-convention.yml" >> $GITHUB_OUTPUT
         else

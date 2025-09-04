@@ -1,0 +1,76 @@
+# Yourssu Backend Team Naming Convention Configuration
+# Based on the team's development workflow guidelines
+
+tags:
+  allowed:
+    - feat
+    - fix
+    - refactor
+    - docs
+    - chore
+
+patterns:
+  # Issue title: <tag>: <description>
+  issue_title: '^({tags}): .+'
+  
+  # PR title: [#issue-number]; <tag>: <description>
+  pr_title: '^\[#\d+\]; ({tags}): .+'
+  
+  # Branch name: <tag>/<issue-number>
+  branch_name: '^({tags})\/\d+$'
+  
+  # Commit message: [#issue-number]; <tag>: <description>
+  commit_message: '^\[#\d+\]; ({tags}): .+'
+
+messages:
+  issue_error: |
+    ❌ **이슈 제목이 네이밍 컨벤션을 따르지 않습니다.**
+    
+    이슈 제목은 다음 형식을 따라야 합니다: `<태그>: <설명>`
+    
+    **사용 가능한 태그:** feat, fix, refactor, docs, chore
+    
+  pr_error: |
+    ❌ **PR 제목이 네이밍 컨벤션을 따르지 않습니다.**
+    
+    PR 제목은 다음 형식을 따라야 합니다: `[#이슈번호]; <태그>: <설명>`
+    
+    **사용 가능한 태그:** feat, fix, refactor, docs, chore
+    
+  branch_error: |
+    ❌ **브랜치 이름이 네이밍 컨벤션을 따르지 않습니다.**
+    
+    브랜치 이름은 다음 형식을 따라야 합니다: `<태그>/<이슈번호>`
+    
+    **사용 가능한 태그:** feat, fix, refactor, docs, chore
+    
+  commit_error: |
+    ❌ **커밋 메시지가 네이밍 컨벤션을 따르지 않습니다.**
+    
+    커밋 메시지는 다음 형식을 따라야 합니다: `[#이슈번호]; <태그>: <설명>`
+    
+    **사용 가능한 태그:** feat, fix, refactor, docs, chore
+
+examples:
+  issue_examples:
+    - "feat: 사용자 로그인 기능 추가"
+    - "fix: 메모리 누수 문제 해결"
+    - "refactor: 데이터베이스 연결 로직 개선"
+    - "docs: API 문서 업데이트"
+    - "chore: 의존성 패키지 업데이트"
+    
+  pr_examples:
+    - "[#123]; feat: 사용자 로그인 기능 추가"
+    - "[#456]; fix: 메모리 누수 문제 해결"
+    - "[#789]; refactor: 데이터베이스 연결 로직 개선"
+    
+  branch_examples:
+    - "feat/123"
+    - "fix/456"
+    - "chore/789"
+    
+  commit_examples:
+    - "[#123]; feat: 사용자 인증 API 추가"
+    - "[#123]; feat: 로그인 폼 UI 구현"
+    - "[#456]; fix: null pointer exception 해결"
+    - "[#789]; refactor: 데이터베이스 커넥션 풀 개선"

@@ -1,0 +1,206 @@
+name: "Yourssu Naming Convention"
+description: "Complete naming convention validation for issues, PRs, branches, and commits"
+author: "Yourssu Backend Team"
+
+inputs:
+  github_token:
+    description: "GitHub token for API access"
+    required: false
+    default: ${{ github.token }}
+  team_config:
+    description: "Predefined team configuration (yourssu-backend, etc.)"
+    required: false
+    default: "yourssu-backend"
+  config_file:
+    description: "Path to custom configuration file"
+    required: false
+    default: ".github/naming-convention.yml"
+  validate_drafts:
+    description: "Whether to validate draft PRs"
+    required: false
+    default: "false"
+  strict_mode:
+    description: "Whether to fail the action on validation errors"
+    required: false
+    default: "true"
+  validate_issues:
+    description: "Whether to validate issue titles"
+    required: false
+    default: "true"
+  validate_prs:
+    description: "Whether to validate PR titles"
+    required: false
+    default: "true"
+  validate_branches:
+    description: "Whether to validate branch names"
+    required: false
+    default: "true"
+  validate_commits:
+    description: "Whether to validate commit messages"
+    required: false
+    default: "true"
+
+outputs:
+  validation_results:
+    description: "JSON object containing all validation results"
+    value: ${{ steps.summarize.outputs.results }}
+  all_valid:
+    description: "Whether all validations passed"
+    value: ${{ steps.summarize.outputs.all_valid }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup validation environment
+      shell: bash
+      run: |
+        echo "🔧 Setting up validation environment"
+        echo "Event: ${{ github.event_name }}"
+        echo "Action: ${{ github.event.action }}"
+        echo "Draft PR: ${{ github.event.pull_request.draft }}"
+
+    - name: Validate Issue Title
+      if: github.event_name == 'issues' && inputs.validate_issues == 'true'
+      uses: ./validation/validator
+      with:
+        validation_string: ${{ github.event.issue.title }}
+        pattern_name: 'issue_title'
+        team_config: ${{ inputs.team_config }}
+        config_file: ${{ inputs.config_file }}
+      id: validate-issue
+
+    - name: Validate PR Title
+      if: github.event_name == 'pull_request' && inputs.validate_prs == 'true'
+      uses: ./validation/validator
+      with:
+        validation_string: ${{ github.event.pull_request.title }}
+        pattern_name: 'pr_title'
+        team_config: ${{ inputs.team_config }}
+        config_file: ${{ inputs.config_file }}
+      id: validate-pr
+
+    - name: Validate Branch Name
+      if: github.event_name == 'pull_request' && inputs.validate_branches == 'true' && (inputs.validate_drafts == 'true' || !github.event.pull_request.draft)
+      uses: ./validation/validator
+      with:
+        validation_string: ${{ github.event.pull_request.head.ref }}
+        pattern_name: 'branch_name'
+        team_config: ${{ inputs.team_config }}
+        config_file: ${{ inputs.config_file }}
+      id: validate-branch
+
+    - name: Validate commit messages
+      if: github.event_name == 'pull_request' && inputs.validate_commits == 'true' && (inputs.validate_drafts == 'true' || !github.event.pull_request.draft)
+      uses: ./validation/commit-validator
+      with:
+        github_token: ${{ inputs.github_token }}
+        pr_number: ${{ github.event.pull_request.number }}
+        team_config: ${{ inputs.team_config }}
+        config_file: ${{ inputs.config_file }}
+      id: validate-commits
+
+    - name: Create validation summary and comments
+      id: summarize
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const results = {
+            issue: {
+              validated: '${{ steps.validate-issue.conclusion }}' !== 'skipped',
+              valid: '${{ steps.validate-issue.outputs.is_valid }}' === 'true',
+              message: '${{ steps.validate-issue.outputs.result_message }}'
+            },
+            pr: {
+              validated: '${{ steps.validate-pr.conclusion }}' !== 'skipped',
+              valid: '${{ steps.validate-pr.outputs.is_valid }}' === 'true',
+              message: '${{ steps.validate-pr.outputs.result_message }}'
+            },
+            branch: {
+              validated: '${{ steps.validate-branch.conclusion }}' !== 'skipped',
+              valid: '${{ steps.validate-branch.outputs.is_valid }}' === 'true',
+              message: '${{ steps.validate-branch.outputs.result_message }}'
+            },
+            commits: {
+              validated: '${{ steps.validate-commits.conclusion }}' !== 'skipped',
+              valid: '${{ steps.validate-commits.outputs.is_valid }}' === 'true',
+              message: '${{ steps.validate-commits.outputs.result_message }}'
+            }
+          };
+
+          // Check if all validated items are valid
+          const validatedItems = Object.values(results).filter(r => r.validated);
+          const allValid = validatedItems.length > 0 && validatedItems.every(r => r.valid);
+          
+          core.setOutput('results', JSON.stringify(results));
+          core.setOutput('all_valid', allValid.toString());
+
+          // Create comment if there are any validation failures
+          const failedItems = Object.entries(results)
+            .filter(([key, result]) => result.validated && !result.valid);
+
+          if (failedItems.length > 0) {
+            let comment = '## 🔍 네이밍 컨벤션 검증 결과\n\n';
+            
+            failedItems.forEach(([type, result]) => {
+              const titles = {
+                issue: '### 이슈 제목',
+                pr: '### PR 제목', 
+                branch: '### 브랜치 이름',
+                commits: '### 커밋 메시지'
+              };
+              
+              comment += titles[type] + '\n';
+              comment += result.message + '\n\n';
+            });
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          }
+
+          console.log('📊 Validation Summary:');
+          Object.entries(results).forEach(([type, result]) => {
+            if (result.validated) {
+              const status = result.valid ? '✅' : '❌';
+              console.log(`${status} ${type}: ${result.valid ? 'PASS' : 'FAIL'}`);
+            }
+          });
+          
+          console.log(`\n🎯 Overall Result: ${allValid ? 'ALL PASSED' : 'SOME FAILED'}`);
+
+    - name: Set status checks
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const results = JSON.parse('${{ steps.summarize.outputs.results }}');
+          const allValid = '${{ steps.summarize.outputs.all_valid }}' === 'true';
+          
+          // Set overall status check
+          await github.rest.repos.createCommitStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            sha: context.payload.pull_request.head.sha,
+            state: allValid ? 'success' : 'failure',
+            target_url: `${context.payload.repository.html_url}/actions/runs/${context.runId}`,
+            description: allValid ? 'All naming conventions valid' : 'Some naming conventions failed',
+            context: 'yourssu/naming-convention'
+          });
+
+    - name: Fail if validation failed and strict mode enabled
+      if: steps.summarize.outputs.all_valid == 'false' && inputs.strict_mode == 'true'
+      shell: bash
+      run: |
+        echo "❌ Validation failed and strict_mode is enabled"
+        exit 1
+
+    - name: Success summary
+      if: steps.summarize.outputs.all_valid == 'true'
+      shell: bash
+      run: |
+        echo "✅ All naming convention validations passed!"
